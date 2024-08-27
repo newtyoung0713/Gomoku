@@ -5,7 +5,7 @@ import math
 # Board size
 BOARD_SIZE = 19
 CELL_SIZE = DIFFER = 30  # Pixel size of each grid
-COLS = ROWS = 16
+COLS = ROWS = 8
 WIDTH = BOARD_SIZE * CELL_SIZE
 HEIGHT = DIFFER * (ROWS + 0.67)
 o_x, o_y = 50, 30   # Define the coordinates of the upper left corner of the chessboard
@@ -140,7 +140,10 @@ class Gomoku:
     center_row, center_col = ROWS // 2, COLS // 2
     distance_to_center = abs(center_row - row) + abs(center_col - col)
     score += (ROWS + COLS - distance_to_center)   # Prioritize center positions
-    # Additional heuristics can be added here for better evaluation (e.g., defending, attacking)
+    # Additional heuristic: Check for blocking potential
+    for direction in [(0, 1), (1, 0), (1, 1), (1, -1)]:
+      # Check if placing here could block an opponent's line
+      score += self.board_blocking_opponent(row, col, direction)
     return score
   
   def evaluate_board(self):
@@ -151,6 +154,16 @@ class Gomoku:
           score += self.evaluate_position(r, c)
         elif self.board[r][c] == 1:   # Player's pieces
           score -= self.evaluate_position(r, c)
+    return score
+  
+  def board_blocking_opponent(self, row, col, direction):
+    score = 0
+    dx, dy = direction  # Unpack the direction tuple
+    # Check both directions in this direction
+    # for dx, dy in [direction]:
+    cnt = self.count_in_direction(row, col, dx, dy, 1)  # Check for opponent's pieces
+    if cnt >= 3:  # If there are 3 pieces in a row, block it
+      score += 10
     return score
 
   def place_chess_ai(self, row, col):
@@ -182,14 +195,12 @@ class Gomoku:
     # Increment the counter to switch turns
     self.cnt += 1
   
-  # def minimax(self, depth, is_maximizing, alpha, beta, max_depth):
   def minimax(self, depth, is_maximizing, alpha, beta):
-    # if depth == max_depth:
     if depth == 0:
       return self.evaluate_board()
     if self.check_winner(self.last_move[0], self.last_move[1]):
       return 10 if is_maximizing else -10
-    elif self.is_draw():
+    if self.is_draw():
       return 0
     if is_maximizing:
       max_eval = -float('inf')
