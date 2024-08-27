@@ -100,7 +100,7 @@ class Gomoku:
 
   def ai_easy(self):
     best_move = None
-    max_score = -math.inf
+    max_score = -float('inf')
     # Scan all available positions
     for r in range(ROWS):
       for c in range(COLS):
@@ -118,19 +118,20 @@ class Gomoku:
 
   def ai_hard(self):
     best_move = None
-    best_score = -math.inf
+    best_score = -float('inf')  # Initialize to very low score
     # Scan all available positions
     for r in range(ROWS):
       for c in range(COLS):
         if self.board[r][c] == 0: # Check if the position is empty
-          self.board[r][c] == 2   # Assuming AI places a white piece
-          score = self.minimax(0, False, -math.inf, math.inf, 3)
-          self.board[r][c] == 0   # Undo this action
+          self.board[r][c] = 2   # Assuming AI places a white piece
+          score = self.minimax(3, False, -float('inf'), float('inf'))
+          self.board[r][c] = 0   # Undo this action
           if score > best_score:
             best_score = score
             best_move = (r, c)
     if best_move:
-      self.place_chess_ai(*best_move)
+      r, c = best_move
+      self.place_chess_ai(r, c)
 
   def evaluate_position(self, row, col):
     # Simple heuristic to evaluate position
@@ -181,35 +182,37 @@ class Gomoku:
     # Increment the counter to switch turns
     self.cnt += 1
   
-  def minimax(self, depth, is_maximizing, alpha, beta, max_depth):
-    if depth == max_depth:
+  # def minimax(self, depth, is_maximizing, alpha, beta, max_depth):
+  def minimax(self, depth, is_maximizing, alpha, beta):
+    # if depth == max_depth:
+    if depth == 0:
       return self.evaluate_board()
     if self.check_winner(self.last_move[0], self.last_move[1]):
-      return 1 if is_maximizing else -1
+      return 10 if is_maximizing else -10
     elif self.is_draw():
       return 0
     if is_maximizing:
-      max_eval = -math.inf
+      max_eval = -float('inf')
       for r in range(ROWS):
         for c in range(COLS):
           if self.board[r][c] == 0:
             self.board[r][c] = 2
-            eval = self.minimax(depth + 1, False, alpha, beta, max_depth)
+            eval = self.minimax(depth - 1, False, alpha, beta)
             self.board[r][c] = 0
-            max_eval = max(max_eval, eval)
+            max_eval = max(eval, max_eval)
             alpha = max(alpha, eval)
             if beta <= alpha:
               break
       return max_eval
     else:
-      min_eval = math.inf
+      min_eval = float('inf')
       for r in range(ROWS):
         for c in range(COLS):
           if self.board[r][c] == 0:
             self.board[r][c] = 1
-            eval = self.minimax(depth + 1, True, alpha, beta, max_depth)
+            eval = self.minimax(depth - 1, True, alpha, beta)
             self.board[r][c] = 0
-            min_eval = min(min_eval, eval)
+            min_eval = min(eval, min_eval)
             beta = min(beta, eval)
             if beta <= alpha:
               break
@@ -251,10 +254,11 @@ class Gomoku:
     return False
   
   def is_draw(self):
-    for row in self.board:
-      if 0 in row:
-        return False
-    return True
+    for r in range(ROWS):
+      for c in range(COLS):
+        if self.board[r][c] == 0:
+          return False
+    return not self.check_winner(self.last_move[0], self.last_move[1])
 
   def count_in_direction(self, row, col, dx, dy, piece):
     cnt = 0
