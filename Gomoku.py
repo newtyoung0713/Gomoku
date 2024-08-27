@@ -159,12 +159,27 @@ class Gomoku:
   def board_blocking_opponent(self, row, col, direction):
     score = 0
     dx, dy = direction  # Unpack the direction tuple
-    # Check both directions in this direction
-    # for dx, dy in [direction]:
-    cnt = self.count_in_direction(row, col, dx, dy, 1)  # Check for opponent's pieces
-    if cnt >= 3:  # If there are 3 pieces in a row, block it
-      score += 10
+    # Check both directions in this given direction
+    # Count opponent's pieces in the one direction
+    cnt = self.count_in_direction(row, col, dx, dy, 1)
+    # Count opponent's pieces in the opposite direction
+    cnt += self.count_in_direction(row, col, -dx, -dy, 1) - 1
+    if cnt == 3:  # Block one side if there are 3 continuous pieces
+      block_score = self.check_one_side_block(row, col, dx, dy)
+      block_score += self.check_one_side_block(row, col, -dx, -dy)
+      score += block_score
+    if cnt >= 4:
+      # Block all side if there are 4 continuous opponent pieces
+      score += 20
     return score
+  
+  def check_one_side_block(self, row, col, dx, dy):
+    # Check the side in the direction (dx, dy)
+    x, y = row + dx, col + dy
+    # Check if it is a valid side to block (i.e., it is empty and within bounds)
+    while 0 <= x < ROWS and 0 <= y < COLS and self.board[x][y] == 0:
+      return 10   # Block this side
+    return 0
 
   def place_chess_ai(self, row, col):
     # Determine color based on the counter (odd for black, even for white)
@@ -208,7 +223,7 @@ class Gomoku:
         for c in range(COLS):
           if self.board[r][c] == 0:
             self.board[r][c] = 2
-            eval = self.minimax(depth - 1, False, alpha, beta)
+            eval = self.minimax(depth + 1, False, alpha, beta)
             self.board[r][c] = 0
             max_eval = max(eval, max_eval)
             alpha = max(alpha, eval)
@@ -221,7 +236,7 @@ class Gomoku:
         for c in range(COLS):
           if self.board[r][c] == 0:
             self.board[r][c] = 1
-            eval = self.minimax(depth - 1, True, alpha, beta)
+            eval = self.minimax(depth + 1, True, alpha, beta)
             self.board[r][c] = 0
             min_eval = min(eval, min_eval)
             beta = min(beta, eval)
