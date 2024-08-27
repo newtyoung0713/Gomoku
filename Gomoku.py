@@ -1,5 +1,6 @@
 import tkinter as tk
 import random
+import math
 
 # Board size
 BOARD_SIZE = 19
@@ -72,6 +73,7 @@ class Gomoku:
     self.board = [[0] * COLS for _ in range(ROWS)]
     self.cnt = 1
     self.current_player = 'black'
+    self.last_move = None
     self.mode = mode
     self.difficulty = difficulty
     self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg='beige')
@@ -97,16 +99,58 @@ class Gomoku:
       self.ai_hard()
 
   def ai_easy(self):
-    empty_positions = [(r, c) for r in range(ROWS) for c in range(COLS) if self.board[r][c] == 0]
-    if empty_positions:
-      row, col = random.choice(empty_positions)
-      self.place_chess_ai(row, col)
+    best_move = None
+    max_score = -math.inf
+    # Scan all available positions
+    for r in range(ROWS):
+      for c in range(COLS):
+        if self.board[r][c] == 0: # Check if the position is empty
+          # Score the position based on some heuristics
+          score = self.evaluate_position(r, c)
+          if score > max_score:
+            max_score = score
+            best_move = (r, c)
+    if best_move:
+      self.place_chess_ai(best_move[0], best_move[1])
 
-  def ai_medium():
-    pass
+  def ai_medium(self):
+    self.ai_easy()
 
-  def ai_hard():
-    pass
+  def ai_hard(self):
+    best_move = None
+    best_score = -math.inf
+    # Scan all available positions
+    for r in range(ROWS):
+      for c in range(COLS):
+        if self.board[r][c] == 0: # Check if the position is empty
+          self.board[r][c] == 2   # Assuming AI places a white piece
+          score = self.minimax(0, False, -math.inf, math.inf, 3)
+          self.board[r][c] == 0   # Undo this action
+          if score > best_score:
+            best_score = score
+            best_move = (r, c)
+    if best_move:
+      self.place_chess_ai(*best_move)
+
+  def evaluate_position(self, row, col):
+    # Simple heuristic to evaluate position
+    score = 0
+    # Evaluate based on proximity to the center
+    center_row, center_col = ROWS // 2, COLS // 2
+    distance_to_center = abs(center_row - row) + abs(center_col - col)
+    score += (ROWS + COLS - distance_to_center)   # Prioritize center positions
+    # Additional heuristics can be added here for better evaluation (e.g., defending, attacking)
+    return score
+  
+  def evaluate_board(self):
+    score = 0
+    for r in range(ROWS):
+      for c in range(COLS):
+        if self.board[r][c] == 2:   # AI's pieces
+          score += self.evaluate_position(r, c)
+        elif self.board[r][c] == 1:   # Player's pieces
+          score -= self.evaluate_position(r, c)
+    return score
 
   def place_chess_ai(self, row, col):
     # Determine color based on the counter (odd for black, even for white)
@@ -126,9 +170,9 @@ class Gomoku:
     x2, y2 = x1 + 20, y1 + 20
     # Place the piece on the canvas
     self.canvas.create_oval(x1, y1, x2, y2, fill=color)
-
     # Update the board with the corresponding color (1 for black, 2 for white)
     self.board[row][col] = 1 if color == 'black' else 2
+    self.last_move = (row, col)   # Updating the recent move
     # Check for a winner after placing the piece
     if self.check_winner(row, col):
       winner = 'Black' if self.board[row][col] == 1 else 'White'
@@ -136,6 +180,40 @@ class Gomoku:
       self.canvas.unbind('<Button-1>')  # Disable further clicks if the game is over
     # Increment the counter to switch turns
     self.cnt += 1
+  
+  def minimax(self, depth, is_maximizing, alpha, beta, max_depth):
+    if depth == max_depth:
+      return self.evaluate_board()
+    if self.check_winner(self.last_move[0], self.last_move[1]):
+      return 1 if is_maximizing else -1
+    elif self.is_draw():
+      return 0
+    if is_maximizing:
+      max_eval = -math.inf
+      for r in range(ROWS):
+        for c in range(COLS):
+          if self.board[r][c] == 0:
+            self.board[r][c] = 2
+            eval = self.minimax(depth + 1, False, alpha, beta, max_depth)
+            self.board[r][c] = 0
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+              break
+      return max_eval
+    else:
+      min_eval = math.inf
+      for r in range(ROWS):
+        for c in range(COLS):
+          if self.board[r][c] == 0:
+            self.board[r][c] = 1
+            eval = self.minimax(depth + 1, True, alpha, beta, max_depth)
+            self.board[r][c] = 0
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+              break
+      return min_eval
 
   def draw_board(self):
     for i in range(ROWS):
@@ -171,6 +249,12 @@ class Gomoku:
       if cnt >= 5:
         return True
     return False
+  
+  def is_draw(self):
+    for row in self.board:
+      if 0 in row:
+        return False
+    return True
 
   def count_in_direction(self, row, col, dx, dy, piece):
     cnt = 0
