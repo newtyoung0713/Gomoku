@@ -10,6 +10,10 @@ WIDTH = BOARD_SIZE * CELL_SIZE
 HEIGHT = DIFFER * (ROWS + 0.67)
 o_x, o_y = 50, 30   # Define the coordinates of the upper left corner of the chessboard
 
+NONE  = 0
+BLACK = 1
+WHITE = 2
+
 class PlayerSelection:
   def __init__(self, root):
     self.root = root
@@ -122,8 +126,8 @@ class Gomoku:
     # Scan all available positions
     for r in range(ROWS):
       for c in range(COLS):
-        if self.board[r][c] == 0: # Check if the position is empty
-          self.board[r][c] = 2   # Assuming AI places a white piece
+        if self.board[r][c] == NONE: # Check if the position is empty
+          self.board[r][c] = WHITE   # Assuming AI places a white piece
           score = self.minimax(3, False, -float('inf'), float('inf'))
           self.board[r][c] = 0   # Undo this action
           if score > best_score:
@@ -150,9 +154,9 @@ class Gomoku:
     score = 0
     for r in range(ROWS):
       for c in range(COLS):
-        if self.board[r][c] == 2:   # AI's pieces
+        if self.board[r][c] == WHITE:   # AI's pieces
           score += self.evaluate_position(r, c)
-        elif self.board[r][c] == 1:   # Player's pieces
+        elif self.board[r][c] == BLACK:   # Player's pieces
           score -= self.evaluate_position(r, c)
     return score
   
@@ -177,7 +181,7 @@ class Gomoku:
     # Check the side in the direction (dx, dy)
     x, y = row + dx, col + dy
     # Check if it is a valid side to block (i.e., it is empty and within bounds)
-    while 0 <= x < ROWS and 0 <= y < COLS and self.board[x][y] == 0:
+    while 0 <= x < ROWS and 0 <= y < COLS and self.board[x][y] == NONE:
       return 10   # Block this side
     return 0
 
@@ -200,7 +204,7 @@ class Gomoku:
     # Place the piece on the canvas
     self.canvas.create_oval(x1, y1, x2, y2, fill=color)
     # Update the board with the corresponding color (1 for black, 2 for white)
-    self.board[row][col] = 1 if color == 'black' else 2
+    self.board[row][col] = BLACK if color == 'black' else 2
     self.last_move = (row, col)   # Updating the recent move
     # Check for a winner after placing the piece
     if self.check_winner(row, col):
@@ -221,10 +225,10 @@ class Gomoku:
       max_eval = -float('inf')
       for r in range(ROWS):
         for c in range(COLS):
-          if self.board[r][c] == 0:
-            self.board[r][c] = 2
-            eval = self.minimax(depth + 1, False, alpha, beta)
-            self.board[r][c] = 0
+          if self.board[r][c] == NONE:
+            self.board[r][c] = WHITE
+            eval = self.minimax(depth - 1, False, alpha, beta)
+            self.board[r][c] = NONE
             max_eval = max(eval, max_eval)
             alpha = max(alpha, eval)
             if beta <= alpha:
@@ -234,10 +238,10 @@ class Gomoku:
       min_eval = float('inf')
       for r in range(ROWS):
         for c in range(COLS):
-          if self.board[r][c] == 0:
-            self.board[r][c] = 1
-            eval = self.minimax(depth + 1, True, alpha, beta)
-            self.board[r][c] = 0
+          if self.board[r][c] == NONE:
+            self.board[r][c] = BLACK
+            eval = self.minimax(depth - 1, True, alpha, beta)
+            self.board[r][c] = NONE
             min_eval = min(eval, min_eval)
             beta = min(beta, eval)
             if beta <= alpha:
